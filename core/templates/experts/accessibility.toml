@@ -1,0 +1,29 @@
+schema_version = "1.0"
+
+[agent]
+role = "accessibility"
+display_name = "Accessibility Specialist"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+status = "stub_v0_2"
+
+[persona]
+system_prompt_file = "personas/accessibility.md"
+voice = "specialist"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/accessibility"
+worktree_path = "../{project_name}.accessibility"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/accessibility"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["无障碍", "无障碍专家", "a11y", "Accessibility", "可访问性"]
+english_aliases = ["accessibility", "a11y", "accessibility-specialist", "a11y-expert", "wcag-specialist"]

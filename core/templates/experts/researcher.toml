@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "researcher"
+display_name = "Researcher"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/researcher.md"
+voice = "researcher"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/researcher"
+worktree_path = "../{project_name}.researcher"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/researcher"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["研究员", "调研专家", "Researcher", "技术调研", "最佳实践"]
+english_aliases = ["researcher", "research", "investigator", "domain-expert", "best-practice-researcher"]

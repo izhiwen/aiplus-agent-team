@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "0.1.0",
+  "name": "agent-team",
+  "displayName": "AiPlus Agent Team",
+  "version": "0.1.0",
+  "source": "bundled",
+  "license": "Apache-2.0",
+  "requiredFiles": [
+    "core/templates/advisor.toml",
+    "core/templates/ceo.toml",
+    "core/templates/architect.toml",
+    "core/templates/pm.toml",
+    "core/templates/engineer-a.toml",
+    "core/templates/engineer-b.toml",
+    "core/templates/reviewer.toml",
+    "core/templates/qa.toml",
+    "core/templates/agent-team.toml",
+    "core/templates/personas/advisor.md"
+  ],
+  "managedFiles": [
+    ".aiplus/modules/aiplus-agent-team",
+    ".aiplus/agents",
+    ".aiplus/agent-memory",
+    ".aiplus/agent-workspaces"
+  ],
+  "runtimeAdapters": ["codex", "claude-code", "opencode"],
+  "installHints": [
+    "Install permanent virtual agent team with 8 core roles and expert directory.",
+    "Requires git for worktree provisioning."
+  ],
+  "doctorChecks": [
+    {
+      "id": "agent-configs",
+      "path": "core/templates/agent-team.toml",
+      "description": "Agent team configuration file is present."
+    },
+    {
+      "id": "personas",
+      "path": "core/templates/personas/advisor.md",
+      "description": "Default persona file is present."
+    },
+    {
+      "id": "worktree-readiness",
+      "path": "core/templates/ceo.toml",
+      "description": "CEO agent config is present for worktree readiness."
+    },
+    {
+      "id": "team-config",
+      "path": "core/templates/pm.toml",
+      "description": "PM agent config is present for team coordination."
+    }
+  ],
+  "publicPrivateBoundary": {
+    "status": "public",
+    "notes": [
+      "Private profiles may consume the agent team engine, but private profile content is not bundled."
+    ]
+  },
+  "secretBoundary": {
+    "status": "forbidden",
+    "notes": [
+      "Agent configurations must not contain secret values, API keys, credentials, or private paths."
+    ]
+  },
+  "legacyStatus": {
+    "status": "new-agent-team-foundation",
+    "notes": [
+      "Introduced in AiPlus v0.5.2"
+    ]
+  }
+}

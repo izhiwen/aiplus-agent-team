@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "devops"
+display_name = "DevOps / SRE"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/devops.md"
+voice = "operator"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/devops"
+worktree_path = "../{project_name}.devops"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/devops"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["DevOps", "运维", "SRE", "部署专家", "基础设施"]
+english_aliases = ["devops", "sre", "ops", "deploy-specialist", "infra-engineer"]

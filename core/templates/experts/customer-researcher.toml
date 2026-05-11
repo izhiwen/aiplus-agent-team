@@ -1,0 +1,29 @@
+schema_version = "1.0"
+
+[agent]
+role = "customer-researcher"
+display_name = "Customer Researcher"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+status = "stub_v0_2"
+
+[persona]
+system_prompt_file = "personas/customer-researcher.md"
+voice = "researcher"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/customer-researcher"
+worktree_path = "../{project_name}.customer-researcher"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/customer-researcher"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["用户研究", "客户研究", "用户调研", "CustomerResearcher", "用户访谈"]
+english_aliases = ["customer-researcher", "user-researcher", "ux-research", "customer-insights", "user-research"]

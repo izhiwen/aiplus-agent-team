@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "engineer-b"
+display_name = "Engineer B"
+tier = "internal"
+default_specialty = ""
+warm_bench_ttl_seconds = 1800
+
+[persona]
+system_prompt_file = "personas/engineer-b.md"
+voice = "engineer"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/engineer-b"
+worktree_path = "../{project_name}.engineer-b"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/engineer-b"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["工程师B", "EngineerB"]
+english_aliases = ["engineer-b", "engineerB", "eng-b", "developer-b"]

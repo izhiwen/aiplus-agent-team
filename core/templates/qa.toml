@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "qa"
+display_name = "QA"
+tier = "internal"
+default_specialty = ""
+warm_bench_ttl_seconds = 900
+
+[persona]
+system_prompt_file = "personas/qa.md"
+voice = "qa"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/qa"
+worktree_path = "../{project_name}.qa"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/qa"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["测试员", "QA"]
+english_aliases = ["qa", "quality-assurance", "tester", "test-engineer"]

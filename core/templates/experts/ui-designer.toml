@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "ui-designer"
+display_name = "UI Designer"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/ui-designer.md"
+voice = "designer"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/ui-designer"
+worktree_path = "../{project_name}.ui-designer"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/ui-designer"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["UI设计", "界面设计", "设计师", "UX设计", "前端设计"]
+english_aliases = ["ui-designer", "designer", "ui", "ux-designer", "interface-designer"]

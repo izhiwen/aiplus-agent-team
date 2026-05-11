@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "advisor"
+display_name = "Advisor"
+tier = "owner_facing"
+default_specialty = ""
+warm_bench_ttl_seconds = 3600
+
+[persona]
+system_prompt_file = "personas/advisor.md"
+voice = "advisor"
+escalation_target = "owner"
+
+[workspace]
+needs_worktree = false
+worktree_branch = "agent/advisor"
+worktree_path = "../{project_name}.advisor"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/advisor"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["顾问", "Advisor"]
+english_aliases = ["advisor", "adviser", "consultant", "strategy"]

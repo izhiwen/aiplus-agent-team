@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "reviewer"
+display_name = "Reviewer"
+tier = "internal"
+default_specialty = ""
+warm_bench_ttl_seconds = 900
+
+[persona]
+system_prompt_file = "personas/reviewer.md"
+voice = "reviewer"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/reviewer"
+worktree_path = "../{project_name}.reviewer"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/reviewer"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["审查员", "Reviewer"]
+english_aliases = ["reviewer", "review", "code-reviewer", "inspector"]

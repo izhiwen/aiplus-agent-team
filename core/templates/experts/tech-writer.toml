@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "tech-writer"
+display_name = "Tech Writer"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/tech-writer.md"
+voice = "writer"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/tech-writer"
+worktree_path = "../{project_name}.tech-writer"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/tech-writer"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["技术写作", "技术文档", "文档专家", "写文档", "TechWriter"]
+english_aliases = ["tech-writer", "writer", "documentation", "docs-specialist", "technical-writer"]

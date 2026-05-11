@@ -1,0 +1,29 @@
+schema_version = "1.0"
+
+[agent]
+role = "data-analyst"
+display_name = "Data Analyst"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+status = "stub_v0_2"
+
+[persona]
+system_prompt_file = "personas/data-analyst.md"
+voice = "analyst"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/data-analyst"
+worktree_path = "../{project_name}.data-analyst"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/data-analyst"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["数据分析师", "数据分析", "分析师", "指标分析", "实验分析"]
+english_aliases = ["data-analyst", "analyst", "data", "metrics", "experiment-analyst"]

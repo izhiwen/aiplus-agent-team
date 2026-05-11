@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "architect"
+display_name = "Architect"
+tier = "internal"
+default_specialty = ""
+warm_bench_ttl_seconds = 1800
+
+[persona]
+system_prompt_file = "personas/architect.md"
+voice = "architect"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/architect"
+worktree_path = "../{project_name}.architect"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/architect"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["架构师", "Architect"]
+english_aliases = ["architect", "arch", "tech-lead", "system-designer"]

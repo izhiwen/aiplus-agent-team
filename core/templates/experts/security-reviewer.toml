@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "security-reviewer"
+display_name = "Security Reviewer"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/security-reviewer.md"
+voice = "reviewer"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/security-reviewer"
+worktree_path = "../{project_name}.security-reviewer"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/security-reviewer"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["安全审查", "安全专家", "安全审计", "代码安全", "安全Reviewer"]
+english_aliases = ["security-reviewer", "security", "sec-audit", "security-expert", "sec-reviewer"]

@@ -1,0 +1,29 @@
+schema_version = "1.0"
+
+[agent]
+role = "performance-engineer"
+display_name = "Performance Engineer"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+status = "stub_v0_2"
+
+[persona]
+system_prompt_file = "personas/performance-engineer.md"
+voice = "engineer"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/performance-engineer"
+worktree_path = "../{project_name}.performance-engineer"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/performance-engineer"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["性能工程师", "性能优化", "PerformanceEngineer", "性能调优", "性能专家"]
+english_aliases = ["performance-engineer", "performance", "perf", "perf-engineer", "optimization-engineer"]

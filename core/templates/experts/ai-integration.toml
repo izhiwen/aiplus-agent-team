@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "ai-integration"
+display_name = "AI Integration Specialist"
+tier = "expert"
+default_specialty = ""
+warm_bench_ttl_seconds = 300
+
+[persona]
+system_prompt_file = "personas/ai-integration.md"
+voice = "specialist"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = true
+worktree_branch = "agent/ai-integration"
+worktree_path = "../{project_name}.ai-integration"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/ai-integration"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["AI集成", "AI集成专家", "模型集成", "Prompt工程师", "大模型集成"]
+english_aliases = ["ai-integration", "ai-integrator", "llm-specialist", "prompt-engineer", "model-integration"]

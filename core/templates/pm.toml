@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "pm"
+display_name = "PM"
+tier = "internal"
+default_specialty = ""
+warm_bench_ttl_seconds = 900
+
+[persona]
+system_prompt_file = "personas/pm.md"
+voice = "pm"
+escalation_target = "ceo"
+
+[workspace]
+needs_worktree = false
+worktree_branch = "agent/pm"
+worktree_path = "../{project_name}.pm"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/pm"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = false
+
+[invocation]
+chinese_aliases = ["产品经理", "PM"]
+english_aliases = ["pm", "product-manager", "product", "requirements"]

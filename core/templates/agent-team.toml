@@ -1,0 +1,29 @@
+schema_version = "1.0"
+
+[team]
+project_name = "<your-project>"
+core_roles = [
+  "advisor", "ceo",
+  "architect", "pm",
+  "engineer-a", "engineer-b",
+  "reviewer", "qa",
+]
+active_experts = []
+
+[coordinator.light]
+complexity_max = 2
+fire_consultant = false
+
+[coordinator.medium]
+complexity_min = 3
+complexity_max = 4
+fire_consultant = true
+
+[coordinator.heavy]
+complexity_min = 5
+risk_threshold = 0.7
+fire_consultant = true
+
+[owner_interface]
+default_visible = ["advisor", "ceo"]
+allow_direct_talk_to_others = true

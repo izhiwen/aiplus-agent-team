@@ -1,0 +1,28 @@
+schema_version = "1.0"
+
+[agent]
+role = "ceo"
+display_name = "CEO"
+tier = "owner_facing"
+default_specialty = ""
+warm_bench_ttl_seconds = 3600
+
+[persona]
+system_prompt_file = "personas/ceo.md"
+voice = "ceo"
+escalation_target = "owner"
+
+[workspace]
+needs_worktree = false
+worktree_branch = "agent/ceo"
+worktree_path = "../{project_name}.ceo"
+
+[memory]
+personal_dir = ".aiplus/agent-memory/ceo"
+read_team_memory = true
+read_project_memory = true
+write_team_memory = true
+
+[invocation]
+chinese_aliases = ["CEO", "首席执行官"]
+english_aliases = ["ceo", "chief", "orchestrator", "leader"]
