@@ -1,0 +1,666 @@
+# =====================================================================
+# AiPlus Agent Team — Acceptance Criteria Schema v0.1.4
+# =====================================================================
+# Changelog from v0.1.3:
+#   ── Gate 4 FINAL FINAL: first_run trust anchor ──
+#   + ownership_verification.sentinel_file_with_owner_metadata
+#     (防 agent 自己跑 setup-gpg 闭环自审)
+#   + sentinel 自动 .gitignore（防进 git history）
+#   + sentinel 必填 name/email（从这里读，不从 git config —— 防 CEO
+#     污染 git user.email 后 sentinel name 不一致暴露伪装）
+#   + gpg_security_limitations (acknowledged, schema 显式记录)
+#   + gpg_batch_config 固定: EDDSA+Curve25519 / Expire-Date: 0 /
+#     Passphrase-Mode: required (no %no-protection)
+#   + fallback to RSA-4096 if EDDSA unsupported
+#   + wizard passphrase_policy: required, min 8 chars, cache_ttl=600s
+#
+#   ── Gate 5 polish ──
+#   + fail_modes_covered_when_applicable.not_applicable_substitution
+#     (必须列哪些现有 fail_modes 替代 behavioral)
+#   + threshold_rationale caveat (30% 凭直觉，30 天后用数据修)
+#
+#   ── canary_replay polish ──
+#   + cadence.fallback_calendar_cadence.freshness_check
+#     (last_audit_max_age_days: 14; 长期无 audit 不触发 canary)
+#
+# v0.1.4 is the freeze-target. After Researcher third-time-charm
+# approval, this version becomes the binding schema for v0.1
+# implementation.
+# =====================================================================
+
+schema_version: "0.1.4"
+
+# Modes considered for v0.1 but deferred: stochastic / regression_diff /
+# temporal_durable. See earlier headers for details.
+
+# ---------------------------------------------------------------------
+# defaults
+# ---------------------------------------------------------------------
+defaults:
+  check_timeout_seconds: 30
+  total_budget_seconds: 300
+
+  trigger_policy:
+    LIGHT: skip
+    MEDIUM: sample
+    HEAVY: full
+    stop_gate_touched: force_full
+  sample_ratio: 3
+
+  audit_passes: 2
+  audit_passes_must_agree: true
+  pass_framings:
+    - "find_what_went_wrong"
+    - "find_what_went_right"
+
+  trust_review_task_id: true
+
+# ---------------------------------------------------------------------
+# variables
+# ---------------------------------------------------------------------
+variables:
+  project_name: "$(basename $PWD)"
+  project_root: "$PWD"
+  agent_team_root: ".aiplus/agent-team"
+  audit_scripts_dir: "{agent_team_root}/audit-scripts"
+  audit_trail_dir: "{agent_team_root}/audit-trail"
+  release_manifest_path: "{agent_team_root}/release-manifest.yaml"
+  baselines_dir: "{agent_team_root}/audit-baselines"
+  owner_key_fingerprint_path: "{agent_team_root}/owner-key-fingerprint"
+  owner_setup_sentinel_path: "{agent_team_root}/.owner-setup-authorized"
+  owner_spot_check_queue: "{audit_trail_dir}/owner-spot-check-queue.jsonl"
+  canary_replay_state: "{audit_trail_dir}/canary-replay-state.jsonl"
+
+# ---------------------------------------------------------------------
+# bin_aliases (unchanged from v0.1.3)
+# ---------------------------------------------------------------------
+bin_aliases:
+  sha256:
+    linux: "sha256sum"
+    macos: "shasum -a 256"
+  md5:
+    linux: "md5sum"
+    macos: "md5 -r"
+  stat_size:
+    linux: "stat -c %s"
+    macos: "stat -f %z"
+  date_iso:
+    linux: "date -Iseconds"
+    macos: "date -u +%Y-%m-%dT%H:%M:%SZ"
+  stat_mtime:
+    linux: "stat -c %Y"
+    macos: "stat -f %m"
+  grep_ext_regex:
+    linux: "grep -E"
+    macos: "grep -E"
+  sed_inplace:
+    linux: "sed -i"
+    macos: "sed -i ''"
+  timeout:
+    linux: "timeout"
+    macos: "gtimeout"
+    fallback_macos: "Fail-closed if gtimeout absent"
+  base64:
+    linux: "base64 -w0"
+    macos: "base64"
+  readlink_f:
+    linux: "readlink -f"
+    macos: "greadlink -f"
+    fallback_macos: "Fail-closed if greadlink absent"
+  tail_reverse:
+    linux: "tac"
+    macos: "tail -r"
+
+# ---------------------------------------------------------------------
+# deliverables (unchanged from v0.1.3)
+# ---------------------------------------------------------------------
+deliverables:
+  # [All 7 deliverables from v0.1.3 unchanged; abbreviated for brevity
+  # in this changelog version. In actual deployment, copy verbatim.]
+  - deliverable_id: "v0.1-worktree-provisioning"
+    description: "git worktree provisioning per DESIGN §7.2"
+    acceptance_mode: deterministic
+    check_combiner: all_must_pass
+    checks:
+      - id: "engineer-a-route-succeeds"
+        kind: exit_code
+        cmd: "aiplus agent route engineer-a 'test worktree provisioning'"
+        expected_exit: 0
+        timeout_seconds: 60
+      - id: "worktree-dir-exists"
+        kind: file_exists
+        path: "../{project_name}.engineer-a/.git"
+      - id: "worktree-on-correct-branch"
+        kind: shell_output_match
+        cmd: "git -C ../{project_name}.engineer-a branch --show-current"
+        expected_regex: "^agent/engineer-a$"
+      - id: "worktree-tracked-by-git"
+        kind: shell_output_match
+        cmd: "git worktree list --porcelain"
+        expected_regex: "worktree.*\\.engineer-a"
+    persisted_audit_script: "{audit_scripts_dir}/v0.1-worktree-provisioning.sh"
+    self_test_script: "{audit_scripts_dir}/v0.1-worktree-provisioning.test.sh"
+    related_stop_gates: []
+    owner_review_required: false
+
+  # [v0.1-warm-bench-cache / v0.1-readme-pain-distinctness /
+  #  v0.1-design-clarity-decisions / v0.1-parity-tests-pass /
+  #  v0.1-owner-memory-untouched / v0.1-stub-not-invitable-error-format
+  #  unchanged from v0.1.3 — see that file for canonical text]
+
+# ---------------------------------------------------------------------
+# audit_script_self_test — EXTENDED in v0.1.4 (not_applicable_substitution)
+# ---------------------------------------------------------------------
+audit_script_self_test:
+  required: true
+
+  fixture_diversity:
+    pass_fixtures_min: 1
+    fail_fixtures_min: 4
+    fail_modes_covered:
+      - "deliverable_absent"
+      - "deliverable_partial"
+      - "deliverable_corrupted"
+      - "deliverable_behavioral"
+
+  fail_modes_descriptions:
+    deliverable_absent: "Expected output/file/state does not exist at all."
+    deliverable_partial: "File/state exists but content wrong/incomplete."
+    deliverable_corrupted: "File/state exists but format invalid (malformed JSON, garbage .git/HEAD)."
+    deliverable_behavioral: |
+      Structure looks correct, but RUNTIME behavior is wrong. The most
+      common LLM-agent failure mode — surface correctness without
+      functional correctness.
+
+  fail_modes_covered_when_applicable:
+    description: |
+      Some deliverables genuinely have no "behavioral" fail mode distinct
+      from absent/partial/corrupted. May mark behavioral=not_applicable
+      with justification — BUT must list which existing fail_modes
+      substitute the behavioral coverage.
+    threshold_rationale: |
+      30% threshold for "% of audit scripts marking behavioral=not_applicable"
+      triggering Reviewer attention is engineering intuition for v0.1
+      freeze. 30-day audit data may reveal:
+        - If <10% mark not_applicable → 30% never trips, threshold is
+          dead weight (consider lowering to 15%)
+        - If >50% mark not_applicable → threshold trips immediately,
+          escape hatch is being abused (consider strict default +
+          per-PR review)
+      Revisit in v0.2 with empirical data.
+
+    # NEW in v0.1.4: prevent free-pass not_applicable
+    not_applicable_substitution:
+      required: true
+      contract: |
+        Deliverable marking behavioral=not_applicable MUST list which
+        existing fail_modes_covered (absent/partial/corrupted) substitute
+        the behavioral coverage. Forces author to articulate WHY behavioral
+        isn't tested and WHAT IS testing runtime correctness instead.
+      example: |
+        fail_modes_covered:
+          - deliverable_absent
+          - deliverable_partial
+          - deliverable_corrupted
+        behavioral_coverage:
+          status: not_applicable
+          substituted_by: [deliverable_partial]
+          justification: |
+            This deliverable's "behavioral" failures all reduce to
+            partial states (specific fields wrong) — covered by
+            partial fixture.
+
+  reviewer_constraint:
+    rule: |
+      .test.sh MUST be reviewed by a Reviewer agent that is NOT the
+      same agent that authored the corresponding audit script.
+
+  example: |
+    # See v0.1.3 schema for full example .test.sh (unchanged in v0.1.4)
+    # Skeleton: ≥1 pass-fixture + ≥4 fail-fixtures covering
+    # absent / partial / corrupted / behavioral
+
+# ---------------------------------------------------------------------
+# release_manifest — Gate 4 EXTENDED in v0.1.4 (first_run trust anchor)
+# ---------------------------------------------------------------------
+release_manifest:
+  required: true
+  path: "{release_manifest_path}"
+
+  ownership:
+    write_permitted_by: [owner_only_via_gpg]
+
+    write_mechanism: |
+      Manifest writes MUST go through:
+        aiplus agent audit re-sign-manifest
+      which requires:
+        1. Explicit Owner confirmation via TUI prompt (no --yes flag)
+        2. GPG signing of resulting commit using Owner's key
+        3. Owner key fingerprint must match recorded fingerprint
+
+    enforcement: |
+      Same as v0.1.3: git log -1 --format='%G? %GF' must show 'G' +
+      matching fingerprint. Unsigned/mismatch → BLOCKED reason=
+      manifest_unsigned_or_wrong_key.
+
+    # CHANGED MAJOR in v0.1.4: first_run trust anchor via sentinel
+    first_run_setup:
+      required: true
+      command: "aiplus agent audit setup-gpg"
+
+      # NEW v0.1.4: ownership_verification via sentinel file
+      ownership_verification:
+        required: true
+        mechanism: sentinel_file_with_owner_metadata
+
+        sentinel_path: "{owner_setup_sentinel_path}"
+
+        sentinel_format: |
+          The sentinel file is a YAML document Owner creates manually
+          before running setup-gpg. setup-gpg refuses to run if sentinel
+          absent OR malformed.
+
+          Required fields:
+            name:  <Owner's full name; used for GPG key Name-Real>
+            email: <Owner's email; used for GPG key Name-Email>
+
+          Optional fields:
+            note: <free-form text Owner may add; ignored by wizard>
+
+          Example:
+            name: Steve Wang
+            email: steve@example.com
+
+        protocol: |
+          BEFORE first `aiplus agent audit setup-gpg` invocation:
+            Owner manually creates sentinel via interactive shell:
+              cat > {owner_setup_sentinel_path} <<EOF
+              name: Owner Full Name
+              email: owner@example.com
+              EOF
+
+          setup-gpg execution:
+            1. Read sentinel; refuse if absent.
+            2. Validate sentinel format (name + email required, non-empty).
+               Refuse if malformed.
+            3. Extract name + email from sentinel (NOT from git config —
+               git config could be poisoned by an agent).
+            4. Run wizard with these as Name-Real / Name-Email.
+            5. After successful wizard completion + commit:
+               delete sentinel ({sed/rm} {owner_setup_sentinel_path}).
+            6. Setup is one-shot per project; sentinel won't regenerate
+               without Owner action.
+
+        why_sentinel_works: |
+          Agent (e.g., CEO during a task) cannot reliably create the
+          sentinel:
+            - Agent runs in a constrained tool context, not interactive shell
+            - Even if agent CAN shell out, "touch a sentinel then run
+              setup-gpg" is not in its instruction space — Owner has not
+              asked for that, no legitimate task requires it
+            - The agent prior (helpful, task-focused) does not include
+              "perform unprompted privilege-escalation setup"
+          Sentinel is a soft-but-effective trust anchor: it forces
+          out-of-band Owner action before the GPG trust chain can begin.
+
+        gitignore_required:
+          rule: |
+            sentinel_path MUST be added to .gitignore automatically by
+            the AiPlus install/setup tooling. Sentinel should never enter
+            git history (it's a one-time signal, not a release artifact).
+          enforcement: |
+            `aiplus agent audit` startup verifies sentinel_path is in
+            .gitignore; if not, refuses to start with a clear error:
+              "Sentinel path must be gitignored; add this to .gitignore:
+               {owner_setup_sentinel_path}"
+
+        refusal_message: |
+          "First-run GPG setup requires Owner authorization via sentinel
+           file. Owner must create:
+              cat > {owner_setup_sentinel_path} <<EOF
+              name: <your full name>
+              email: <your email>
+              EOF
+           Then re-run: aiplus agent audit setup-gpg"
+
+      # NEW v0.1.4: explicit GPG batch config (no more "sensible defaults")
+      gpg_batch_config:
+        spec: |
+          Key-Type: EDDSA
+          Key-Curve: ed25519
+          Subkey-Type: ECDH
+          Subkey-Curve: cv25519
+          Name-Real: <from sentinel.name>
+          Name-Email: <from sentinel.email>
+          Expire-Date: 0
+          Passphrase: <prompted from Owner interactively, not in batch>
+          %commit
+
+        rationale: |
+          EDDSA + Curve25519 is current best practice (small, fast, secure).
+          No expiry to avoid Owner being locked out unexpectedly.
+          Passphrase obtained interactively, never embedded in batch config.
+          %no-protection NEVER used (would create unprotected key).
+
+        fallback_if_eddsa_unsupported:
+          condition: "gpg --version reports < 2.1 OR EDDSA generation fails"
+          fallback_spec: |
+            Key-Type: RSA
+            Key-Length: 4096
+            Subkey-Type: RSA
+            Subkey-Length: 4096
+            (other fields unchanged)
+          rationale: |
+            RSA-4096 is still strong security (just larger keys).
+            Wizard prints clear message when falling back so Owner knows.
+
+      # NEW v0.1.4: passphrase policy
+      passphrase_policy:
+        required: true
+        empty_passphrase_refused: true
+        min_length: 8
+        wizard_prompts: |
+          Wizard prompts Owner interactively for passphrase (twice, for
+          confirmation). Empty passphrase → wizard refuses, asks again.
+          Passphrase length < 8 chars → warns but allows (Owner choice).
+          Passphrase is NEVER written to disk or logged.
+
+        gpg_agent_cache_ttl_seconds: 600
+        gpg_agent_cache_ttl_rationale: |
+          Wizard writes ~/.gnupg/gpg-agent.conf with default-cache-ttl=600
+          (10 minutes) if not already set, after Owner confirmation.
+          Rationale: balance Owner convenience (don't retype every minute)
+          vs attack window (10 min cache is bounded). Adjustable per
+          Owner preference in v0.2.
+
+    # NEW v0.1.4: acknowledged GPG security limitations
+    gpg_security_limitations:
+      acknowledged: true
+      description: |
+        GPG strong_mode protects against:
+          - Schema tampering (acceptance YAML / audit script / fixture
+            hash mismatch)
+          - Unauthorized manifest writes by agents
+          - Replay attacks (same script + state → must produce same verdict)
+
+        GPG strong_mode does NOT protect against:
+          - Same-OS-user attacker who can read ~/.gnupg/ AND has access
+            to cached passphrase (via gpg-agent socket)
+          - Compromised Owner machine (root attacker can do anything)
+          - Stolen GPG private key
+
+        Mitigations Owner SHOULD apply:
+          - Non-empty passphrase (wizard enforces)
+          - Short gpg-agent default-cache-ttl (wizard recommends 600s)
+          - RECOMMENDED for high-security contexts: run agent runtime
+            under separate OS user without read access to Owner's
+            ~/.gnupg/ (advanced setup; out of scope for v0.1)
+
+        v0.3+ may add:
+          - Hardware-backed signing (YubiKey / Secure Enclave)
+          - Layer 7 cross-provider auditor (different LLM, different
+            machine) for highest trust
+
+  hash_comparison_method: deterministic_only
+  hash_comparison_enforcement: |
+    Same as v0.1.3: deterministic diff, never LLM judgment.
+
+  schema:
+    # Same as v0.1.3, unchanged
+    schema_version: string
+    released_at: iso8601
+    released_by: string
+    auditor_min_version: string
+    acceptance_files: list
+    audit_scripts: list
+    audit_script_self_tests: list
+    synthetic_fixtures: list
+    bin_aliases_hash: hex64
+
+  enforcement_summary: |
+    Pre-audit chain (all must PASS, in order):
+      1. Sentinel verification (first run only): sentinel absent or
+         malformed → BLOCKED reason=ownership_unverified
+      2. git status --porcelain {release_manifest_path} empty
+      3. git log -1 manifest commit: %G? == 'G' AND %GF == recorded
+         fingerprint
+      4. Re-hash bin_aliases, compare to bin_aliases_hash
+      5-8. Re-hash each file list entry, compare
+    Any FAIL → AUDITOR_VERDICT=BLOCKED.
+
+# ---------------------------------------------------------------------
+# canary_replay — EXTENDED in v0.1.4 (freshness_check on fallback)
+# ---------------------------------------------------------------------
+canary_replay:
+  enabled: true
+
+  cadence:
+    type: audit_run_count
+    trigger_every_n_runs: 7
+
+    # CHANGED in v0.1.4: monthly fallback now checks freshness
+    fallback_calendar_cadence:
+      type: monthly
+
+      # NEW v0.1.4: don't trigger canary if no recent audit baseline
+      freshness_check:
+        required: true
+        last_audit_max_age_days: 14
+        behavior_when_stale: |
+          If last completed audit_run > 14 days old, do NOT trigger
+          canary (no fresh baseline to compare against — canary is
+          "compare current vs recent historical"; no recent historical =
+          meaningless).
+          Instead, surface a message in next Audit packet:
+            "It has been N days since last full audit. Canary replay
+             requires recent audit baselines (max 14 days old).
+             Please run: aiplus agent audit run
+             before canary can resume."
+        rationale: |
+          Without freshness check, monthly fallback runs canary against
+          stale baselines and gives Owner false confidence ("system
+          checked, all PASS") when really no meaningful audit happened.
+
+  sample_strategy: risk_weighted
+
+  sample_distribution:
+    HEAVY: 3
+    MEDIUM: 2
+    LIGHT:
+      strategy: round_robin
+      target_coverage_days: 180
+    stop_gate_touched: always
+
+  sample_size_cap: 8
+  sample_size_floor: 3
+
+  sample_priority_order:
+    1: stop_gate_touched
+    2: HEAVY
+    3: MEDIUM
+    4: LIGHT
+    overflow_handling: |
+      Drops tracked in metrics.canary_dropped_this_run. Alert Owner
+      if ≥3 consecutive runs drop items.
+
+  replay_command: "aiplus agent audit replay <audit_run_id>"
+  trigger_replay_on_drift: true
+
+  do_not_replay_against:
+    - "acceptance_mode == owner_review"
+    - "acceptance_mode == llm_judge"
+    - "status_field == stub_v0_2"
+
+  overclaim_detected_action:
+    # (unchanged from v0.1.3 — see that schema for full text)
+    step_1_enqueue: "Enqueue to owner_spot_check.queue PRIORITY=HIGH; wait for Owner verdict"
+    step_2_after_owner_confirms_overclaim: "Log + penalize + alert"
+    step_2_alt_if_owner_says_replay_wrong: "Log false-overclaim; do NOT penalize"
+
+# ---------------------------------------------------------------------
+# owner_spot_check (unchanged from v0.1.3)
+# ---------------------------------------------------------------------
+owner_spot_check:
+  enabled: true
+
+  feedback_command: |
+    aiplus agent audit owner-feedback <audit_run_id> \
+      --actual-verdict PASS|FAIL --note "<rationale>"
+
+  feedback_retraction:
+    command: "aiplus agent audit owner-feedback-retract <audit_run_id>"
+
+  queue:
+    path: "{owner_spot_check_queue}"
+    format: jsonl
+
+  storage: "{audit_trail_dir}/owner-feedback.jsonl"
+  affects_metrics: true
+  metrics_window_days: 30
+
+  weekly_reminder: opt_in_only
+
+# ---------------------------------------------------------------------
+# Auditor output contract (unchanged from v0.1.3 except manifest_signing)
+# ---------------------------------------------------------------------
+auditor_output:
+  format: structured_yaml
+  required_fields:
+    # All fields unchanged from v0.1.3 — see that schema for full
+    # enumeration. Only addition:
+    blocked_deliverables:
+      type: list
+      element:
+        deliverable_id: string
+        reason: enum [
+          schema_tampered,
+          auditor_unavailable,
+          ceo_override_attempted,
+          manifest_unsigned_or_wrong_key,
+          manifest_dirty,
+          hash_via_llm,
+          ownership_unverified,     # NEW v0.1.4: sentinel absent/malformed
+          sentinel_in_git,          # NEW v0.1.4: sentinel path not gitignored
+        ]
+
+# ---------------------------------------------------------------------
+# Failure modes (extended in v0.1.4)
+# ---------------------------------------------------------------------
+failure_modes:
+  # All v0.1.3 failure modes preserved; only additions shown here.
+
+  # NEW v0.1.4: ownership-related failure modes
+  ownership_unverified:
+    trigger: |
+      `aiplus agent audit setup-gpg` invoked but sentinel file at
+      {owner_setup_sentinel_path} is absent OR malformed (missing name
+      OR missing email OR not parseable as YAML).
+    severity: critical_setup_failure
+    system_action: |
+      Setup-gpg refuses to run.
+      Print refusal_message instructing Owner how to create sentinel.
+      Exit code 3 (user-actionable).
+    cannot_be_overridden_by: [any agent including CEO]
+    rationale: |
+      Without out-of-band Owner action (manual sentinel creation),
+      first-run GPG setup could be agent-driven, yielding a trust
+      chain where agent self-generates key + self-signs manifest +
+      self-audits. Sentinel breaks this loop.
+
+  sentinel_in_git_history:
+    trigger: |
+      Sentinel path {owner_setup_sentinel_path} appears in git history
+      (was ever committed). Implies sentinel was created by automation
+      (agent / CI / script) rather than Owner.
+    severity: critical_setup_failure
+    system_action: |
+      audit refuses to start.
+      Surface to Owner: "Sentinel was committed at <commit_sha>; this
+      is unexpected — sentinels should only ever be created by Owner
+      shell action and auto-deleted by wizard. Investigate whether
+      first-run setup was performed by an agent."
+
+# ---------------------------------------------------------------------
+# Validation rules (extended in v0.1.4)
+# ---------------------------------------------------------------------
+validation_rules:
+  # All v0.1.3 rules preserved. New in v0.1.4:
+
+  - rule: |
+      First-run setup-gpg MUST verify sentinel file at
+      {owner_setup_sentinel_path} exists AND has valid YAML format
+      with non-empty name + email fields, BEFORE generating GPG key.
+      Missing/malformed sentinel → BLOCKED reason=ownership_unverified.
+
+  - rule: |
+      Sentinel path {owner_setup_sentinel_path} MUST be listed in
+      .gitignore. AiPlus install tooling adds it automatically;
+      `aiplus agent audit` startup re-verifies. Sentinel committed
+      to git → BLOCKED reason=sentinel_in_git.
+
+  - rule: |
+      setup-gpg MUST extract Name-Real / Name-Email from sentinel,
+      NOT from `git config user.name / user.email`. Git config may be
+      poisoned by agent; sentinel is the trust source.
+
+  - rule: |
+      setup-gpg MUST delete sentinel after successful key generation +
+      fingerprint commit. Sentinel is one-shot. Re-running setup
+      requires Owner re-creation of sentinel.
+
+  - rule: |
+      Generated GPG key MUST have non-empty passphrase. Wizard refuses
+      to commit a key with empty passphrase (Passphrase-Mode: required
+      enforced).
+
+  - rule: |
+      Generated GPG key MUST use EDDSA + Curve25519, OR fallback to
+      RSA-4096 with explicit user notification if EDDSA unsupported by
+      installed GPG version.
+
+  - rule: |
+      Deliverable marking behavioral=not_applicable MUST list
+      substituted_by: [<existing fail_modes_covered>] AND a 1-line
+      justification. Bare not_applicable without substitution → INVALID.
+
+# ---------------------------------------------------------------------
+# Invalid examples (extended in v0.1.4)
+# ---------------------------------------------------------------------
+invalid_examples:
+  # All v0.1.3 invalid examples preserved. New in v0.1.4:
+
+  - reason: "setup-gpg invoked without sentinel file"
+    scenario: |
+      Agent runs `aiplus agent audit setup-gpg` but sentinel absent.
+      → BLOCKED reason=ownership_unverified, exit code 3.
+      Owner must manually create sentinel before setup proceeds.
+
+  - reason: "sentinel committed to git history"
+    scenario: |
+      `git log --all --pretty=format: --name-only | grep
+      .owner-setup-authorized` returns hits → sentinel was committed
+      (should never happen if .gitignore correct).
+      → audit refuses to start; surface to Owner for investigation.
+
+  - reason: "GPG key generated with empty passphrase"
+    scenario: |
+      Wizard config attempts `Passphrase-Mode: none` or empty
+      passphrase prompt response.
+      → wizard refuses; loops until non-empty passphrase provided.
+
+  - reason: "Name-Real read from git config instead of sentinel"
+    scenario: |
+      Wizard uses `git config user.name` directly (skip sentinel).
+      → INVALID; agent could have set git config to spoof Owner identity.
+
+  - reason: "behavioral=not_applicable without substitution"
+    snippet:
+      deliverable_id: "bad-16"
+      acceptance_mode: deterministic
+      fail_modes_covered:
+        - "deliverable_absent"
+        - "deliverable_partial"
+        - "deliverable_corrupted"
+      behavioral_coverage:
+        status: not_applicable
+        # MISSING: substituted_by + justification → INVALID

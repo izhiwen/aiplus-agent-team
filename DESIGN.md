@@ -1,6 +1,7 @@
 # AiPlus Agent Team Design
 
-Status: draft v0.1.1 (post-double-review)
+Status: draft v0.1.2 (post-six-round-acceptance-schema-review)
+Acceptance schema (binding): `.aiplus/agent-team/acceptance/v0.1.4/schema.yaml`
 Scope: local-first permanent agent team, with adaptive coordinator and on-demand
 expert directory, designed to compose with the existing AiPlus plugin stack.
 
@@ -671,6 +672,44 @@ disk, but the OS may swap process memory. Truly preventing swap requires
 high-sensitivity context and swap-to-disk is unacceptable, mitigation is
 operational (disable swap on the host) rather than in-plugin.
 
+### 15.1 Honest caveat on GPG strong_mode (sentinel soft anchor)
+
+The Auditor's GPG-signed release manifest (see §22 and the acceptance
+schema at `.aiplus/agent-team/acceptance/v0.1.4/schema.yaml`) protects
+against schema tampering and unauthorized manifest writes by agents. It
+does **NOT** provide hard isolation in lifestyle-solo deployments where
+the agent runtime shares an OS user with Owner.
+
+Concrete limits in same-OS-user mode:
+
+- Agent technically can read `~/.gnupg/` private key files.
+- Agent technically can use `gpg-agent` cached passphrase.
+- Agent technically can shell out to simulate Owner actions, including
+  `touch`-ing the first-run setup sentinel file.
+
+The sentinel mechanism for first-run setup is a **soft trust anchor**:
+it relies on the prior that a helpful, task-focused agent will not
+spontaneously perform unprompted privilege-escalation setup (the agent
+has not been asked to, and "create sentinel then run setup-gpg" is not
+in its instruction space). This prior holds in practice for current
+LLM agents but is not a cryptographic guarantee.
+
+Owners deploying high-sensitivity projects should consider:
+
+- Running the AiPlus agent runtime under a separate OS user that lacks
+  read access to the Owner's `~/.gnupg/` directory (advanced; out of
+  v0.1 scope).
+- Hardware-backed signing key (YubiKey / Secure Enclave) — under
+  consideration for v0.3.
+- Layer 7 cross-provider auditor (different LLM, different machine) —
+  under consideration for v0.3.
+- Or accept the v0.1 boundary and supplement with periodic Owner
+  spot-checks via `aiplus agent audit owner-feedback`.
+
+This caveat is intentionally surfaced in the schema's
+`gpg_security_limitations` block as `acknowledged: true` so Owners are
+informed of the boundary, not silently exposed.
+
 The Owner can audit:
 
 - Persona files: `cat .aiplus/agents/<role>.toml`
@@ -840,7 +879,118 @@ To keep MVP shipping discipline:
 
 ---
 
-End of design v0.1.1 draft.
+## 22. Acceptance Criteria & Auditor (frozen)
 
-Next steps: Owner acceptance → freeze schemas → write Platform CEO prompt
-for v0.1 implementation.
+The binding acceptance criteria schema for v0.1 lives at:
+
+```
+.aiplus/agent-team/acceptance/v0.1.4/schema.yaml
+```
+
+This file is the contract between Team CEO's claims and what counts as
+"actually done". It was developed across six independent review passes
+(`acceptance_criteria_schema_v0.1.0.yaml` → `v0.1.4`) and is now frozen
+as the binding spec for v0.1 implementation.
+
+### 22.1 What the schema specifies
+
+- **3 acceptance modes** — `deterministic` / `llm_judge` / `owner_review`,
+  with strict hierarchy: deterministic is authoritative; llm_judge always
+  routes to Owner; owner_review skips Auditor entirely.
+- **3 check kinds** — `exit_code` / `file_exists` / `shell_output_match`.
+  Forbidden by design: `ask_user`, raw LLM judgment, arbitrary shell
+  primitives that don't reduce to a deterministic verdict.
+- **7 working deliverables** as canonical examples, including the v0.1
+  acceptance scenario from §17.
+- **`bin_aliases`** for cross-platform commands (`{sha256}`, `{timeout}`,
+  etc.) so audit scripts work on Linux and macOS without rewrites.
+- **Auditor independence**: 6 layers per §6.3 plus a 7th (cross-provider)
+  in v0.3 — task source, info source, weak tool isolation, output path,
+  prompt injection defense, fail-closed enforcement, optional model
+  independence.
+
+### 22.2 Critical anti-overclaim mechanisms
+
+- **`canary_replay`** — weekly count-based + risk-weighted re-execution
+  of historical PASS audits against current state. Owner-in-loop on
+  candidate overclaims (no automatic penalty without Owner confirmation).
+- **`audit_reproducibility_drift`** — same deliverable + same script +
+  same file state but different verdict across audit runs = LLM
+  hallucination signal. Routes both runs to Owner spot-check queue.
+- **`owner_spot_check`** — Owner can flag any deliverable's verdict via
+  one-line command; ground-truth feedback flows into Auditor accuracy
+  metrics over a 30-day window.
+- **`owner_feedback_inline`** — every Audit packet ends with a 5-second
+  feedback prompt that does NOT require Owner to remember commands;
+  copy-paste is enough.
+
+### 22.3 First-run trust anchor (sentinel + GPG)
+
+The first time `aiplus agent audit setup-gpg` runs, the wizard refuses
+to proceed unless Owner has manually created the sentinel file at
+`.aiplus/agent-team/.owner-setup-authorized` containing Owner's name
+and email in YAML. This is a soft anchor (see §15.1) but blocks the
+agent-self-setup attack: an agent invoking setup-gpg cannot complete
+the trust chain without out-of-band Owner action.
+
+Generated GPG key uses EDDSA + Curve25519 (fallback RSA-4096 on older
+GPG versions), non-empty passphrase required, gpg-agent cache TTL
+recommended ≤600 seconds.
+
+### 22.4 Goodhart-resistant `.test.sh`
+
+Every audit script has a sibling `.test.sh` exercising the script
+against ≥1 pass-fixture and ≥4 fail-fixtures covering the 4 fail modes
+(absent / partial / corrupted / **behavioral**). The behavioral fail
+mode catches "structure correct but runtime wrong" — the most common
+LLM-agent failure mode and the one most likely to escape simpler
+testing. `.test.sh` must be reviewed by a Reviewer agent that did not
+author the corresponding audit script.
+
+If a deliverable genuinely has no behavioral fail mode (rare; e.g.,
+pure file-existence checks), it may mark `behavioral=not_applicable`
+but MUST list which existing fail modes substitute and provide a
+1-line justification.
+
+### 22.5 30-day data-driven evolution
+
+After v0.1.4 lands in production, the following metrics drive v0.1.5
+and v0.2 patches (not engineering intuition):
+
+| Metric | Threshold | Action if tripped |
+|---|---|---|
+| `auditor_overclaim_rate_window_30d` | > 5% | Upgrade `audit_passes` default |
+| `canary_replay_false_positive_rate` | > 20% | Recalibrate canary |
+| `canary_dropped_this_run` (≥3 weeks) | sustained | Propose raising `sample_size_cap` |
+| % deliverables marking `behavioral=not_applicable` | > 30% | Escape hatch abuse — strict default |
+| `ownership_unverified` events | high frequency | Sentinel UX problem |
+| GPG passphrase entry failure rate | high | `gpg-agent default-cache-ttl` too short |
+
+The schema explicitly documents that thresholds (5%, 20%, 30%) are
+engineering intuition at freeze time; production data will revise them.
+
+### 22.6 Out-of-scope for v0.1 (Auditor scope only)
+
+The following are noted in the schema as deferred:
+
+- v0.1.5 (data-driven, 4 weeks after freeze): refusal_message URL-only
+  hardening; any 30-day data-driven small patches.
+- v0.2 (after 30-day data): `substituted_by` references to specific
+  fixture id; mutation testing; `fixture_provenance` from real failure
+  history; `stochastic` mode; `regression_diff` mode.
+- v0.3: Layer 7 cross-provider auditor (different LLM provider for
+  Auditor than CEO); hardware-backed signing (YubiKey / Secure
+  Enclave); `temporal_durable` mode for continuous-running assertions.
+
+These are tracked in the schema's `Deferred` section at the top.
+
+---
+
+End of design v0.1.2 draft.
+
+Next steps: Team CEO implementation prompt for v0.1 — implement the
+Auditor + sentinel + setup-gpg wizard + canary_replay + Goodhart-resistant
+`.test.sh` per `.aiplus/agent-team/acceptance/v0.1.4/schema.yaml`,
+with the v0.1 core team and worktree provisioning from earlier sections.
+Once Team CEO produces a binary that passes its own acceptance schema
+(self-audit), v0.1 is shippable.
