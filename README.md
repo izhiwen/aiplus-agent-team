@@ -1,23 +1,44 @@
 # AiPlus Agent Team
+[![CI](https://github.com/izhiwen/aiplus-agent-team/actions/workflows/ci.yml/badge.svg)](https://github.com/izhiwen/aiplus-agent-team/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 [中文 README](README.zh-CN.md)
 
 ## The pain
 
 You ask the agent to architect a schema, then implement it, then review the
-code, then write tests. By the third task it has drifted: the same prompt
+code, then write tests. By the third task it has **drifted**: the same prompt
 history now contains product reasoning, implementation hacks, and review
 nitpicks, and the output is none of them well.
 
-Worse, the shared context pollutes across roles. The engineer-mode transcript
+Worse, the shared context **pollutes** across roles. The engineer-mode transcript
 ends up in the PM-mode context. Architectural decisions get buried under
 transient debug printlns. Useful long-term facts age out because irrelevant
 scratch fills the window.
 
 You try to compensate by giving the agent more hats. But one agent wearing
-PM, Architect, Engineer, Reviewer, and QA does each hat shallowly. Real
+PM, Architect, Engineer, Reviewer, and QA does each hat **shallowly**. Real
 engineering teams divide labor because the work *is* that structured.
 
+### Not these other pains
+
+AiPlus Agent Team is specifically about **role separation and execution**.
+Other AiPlus plugins solve adjacent but different problems:
+
+| Plugin | Pain it solves | Why it is not Agent Team |
+|---|---|---|
+| [aiplus-agent-memory](https://github.com/izhiwen/aiplus-agent-memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
+| [aiplus-auto-team-consultant](https://github.com/izhiwen/aiplus-auto-team-consultant) | **overlooks** — agent misses onboarding, security, execution pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
+| [aiplus-compact-reminder](https://github.com/izhiwen/aiplus-compact-reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
+| [aiplus-agent-velocity](https://github.com/izhiwen/aiplus-agent-velocity) | **mis-bills** — estimates anchor on human-engineer hours | Calibrates one agent's estimates; does not structure a team |
+
+Agent Team is the layer that installs a **permanent, executing team** with
+isolated workspaces and memory. It sits on top of the other four plugins and
+uses them as shared infrastructure.
+
 ## What we do about it
+
+**Replace single-agent drift with a permanent team.**
 
 AiPlus Agent Team installs a permanent virtual team of eight core roles into
 your project: Advisor, CEO, Architect, PM, two Engineers, Reviewer, and QA.
@@ -45,20 +66,26 @@ No daemon. No cloud sync. No upload. Each agent is state-level permanent —
 its files live on disk, but the process is ephemeral, spawned only when the
 CEO routes a task.
 
-## Quick start
+## Install
 
-If you already have AiPlus installed:
+Add the module to your project:
 
 ```bash
 cd MyProject
+aiplus add agent-team
 aiplus install codex          # or: claude-code, opencode, all
-aiplus agent status
 ```
 
-`aiplus agent status` shows the team roster, active experts, and warm-bench
-state.
+## Quick start
 
-Then route a task through the CEO:
+```bash
+aiplus agent status              # Show team roster, active experts, warm bench
+aiplus agent route engineer-a    # Assign task to engineer-a
+aiplus agent integrate engineer-a # Merge engineer-a's branch back into main
+aiplus agent audit run           # Run acceptance audit
+```
+
+Route a task through the CEO:
 
 ```text
 aiplus agent route "refactor the billing module"
@@ -73,8 +100,49 @@ aiplus agent doctor            # validate configs, worktrees, memory layout
 aiplus agent list              # list all roles (core + expert)
 aiplus agent talk architect    # direct conversation with one role
 aiplus agent invite security-reviewer   # add an expert to the active team
-aiplus agent integrate engineer-a       # merge engineer-a's branch into main
+aiplus agent dismiss security-reviewer  # remove expert from active team
+aiplus agent transcript        # show recent activity for audit
+aiplus agent prune-worktrees   # clean up stale worktrees
 ```
+
+## Architecture overview
+
+```
+                    aiplus-agent-team               ← orchestration layer
+                           ↓ uses
+               aiplus-auto-team-consultant          ← decision-support layer
+                           ↓ uses
+    aiplus-agent-memory   aiplus-compact-reminder   aiplus-agent-velocity
+               ←——————— shared infrastructure layer ———————→
+```
+
+Agent Team is the orchestration layer. It sits on top of the four existing
+AiPlus plugins and uses them as shared infrastructure:
+
+- **aiplus-agent-memory** — each agent gets a namespaced memory under
+  `.aiplus/agent-memory/<role>/`
+- **aiplus-compact-reminder** — each long-running agent runs its own compact
+  cycle; CEO tracks compact state per agent
+- **aiplus-agent-velocity** — each agent has its own velocity records
+- **aiplus-auto-team-consultant** — CEO fires consultant before MEDIUM and
+  HEAVY tasks; consultant findings flow into the staffed team's brief
+
+### Five core design decisions
+
+1. **Permanent core team of 8 roles** — installed automatically when the
+   plugin is added to a project.
+2. **Expert directory** — 11 specialist roles available on-demand, only
+   summoned when triggers match.
+3. **State-level permanence + warm bench** — agent identity lives on disk;
+   process is ephemeral, spawned only when CEO routes a task.
+4. **Git worktree workspaces** — each code-touching role gets an isolated
+   working directory so two Engineers can work in parallel without silent
+   overwrites.
+5. **Three-layer memory** — personal (per-agent), team (CEO-shared), and
+   project (existing `.aiplus/memory/`). Project memory wins on conflict.
+
+See [`DESIGN.md`](DESIGN.md) for the full design rationale, routing protocol,
+memory model, worktree policy, and acceptance criteria.
 
 ## What's inside
 
@@ -88,6 +156,25 @@ aiplus agent integrate engineer-a       # merge engineer-a's branch into main
 - `adapters/claude-code/` — Claude Code project-local commands and agents
 - `adapters/opencode/` — OpenCode project-local config, commands, and prompts
 - `examples/` — synthetic examples for all three runtimes
+
+## Contributing
+
+We welcome contributions that stay within the plugin's scope (role separation
+and execution, not advisory consulting or estimate calibration).
+
+1. **Open an issue first** for anything larger than a typo fix — the
+   `aiplus-agent-team` scope is tightly bounded and we want to avoid
+   well-intentioned PRs that collide with other AiPlus plugins.
+2. **Follow the existing TOML + markdown persona pattern** — per-agent config
+   lives in `.aiplus/agents/<role>.toml`, persona prompt in
+   `.aiplus/agents/personas/<role>.md`.
+3. **Add adapter parity** — if you change CLI surface, update all three
+   adapters (`adapters/codex/`, `adapters/claude-code/`, `adapters/opencode/`).
+4. **Run `aiplus agent doctor`** after config changes to validate worktrees,
+   memory layout, and TOML schema.
+5. **Acceptance criteria** are binding — see
+   `.aiplus/agent-team/acceptance/v0.1.4/schema.yaml`. Any behavioral change
+   must update the schema and its sibling `.test.sh`.
 
 ## Safety boundaries
 
