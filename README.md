@@ -1,5 +1,5 @@
 # AiPlus Agent Team
-[![CI](https://github.com/izhiwen/aiplus-agent-team/actions/workflows/ci.yml/badge.svg)](https://github.com/izhiwen/aiplus-agent-team/actions/workflows/ci.yml)
+[![CI](https://github.com/izhiwen/AiPlus-Agent-Team/actions/workflows/ci.yml/badge.svg)](https://github.com/izhiwen/AiPlus-Agent-Team/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 [中文 README](README.zh-CN.md)
@@ -27,10 +27,10 @@ Other AiPlus plugins solve adjacent but different problems:
 
 | Plugin | Pain it solves | Why it is not Agent Team |
 |---|---|---|
-| [aiplus-agent-memory](https://github.com/izhiwen/aiplus-agent-memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
-| [aiplus-auto-team-consultant](https://github.com/izhiwen/aiplus-auto-team-consultant) | **overlooks** — agent misses onboarding, security, execution pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
-| [aiplus-compact-reminder](https://github.com/izhiwen/aiplus-compact-reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
-| [aiplus-agent-velocity](https://github.com/izhiwen/aiplus-agent-velocity) | **mis-bills** — estimates anchor on human-engineer hours | Calibrates one agent's estimates; does not structure a team |
+| [AiPlus-Agent-Memory](https://github.com/izhiwen/AiPlus-Agent-Memory) | **amnesia** — agent forgets context between sessions | Gives one agent a memory; does not split roles |
+| [AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant) | **overlooks** — agent misses onboarding, security, execution pitfalls at plan time | Advises *before* planning; does not execute or persist roles |
+| [AiPlus-Compact-Reminder](https://github.com/izhiwen/AiPlus-Compact-Reminder) | **forget** — context recovery after compact | Recovers one agent's context; does not separate roles |
+| [AiPlus-Agent-Velocity](https://github.com/izhiwen/AiPlus-Agent-Velocity) | **mis-bills** — estimates anchor on human-engineer hours | Calibrates one agent's estimates; does not structure a team |
 
 Agent Team is the layer that installs a **permanent, executing team** with
 isolated workspaces and memory. It sits on top of the other four plugins and
@@ -108,23 +108,23 @@ aiplus agent prune-worktrees   # clean up stale worktrees
 ## Architecture overview
 
 ```
-                    aiplus-agent-team               ← orchestration layer
+                    AiPlus-Agent-Team               ← orchestration layer
                            ↓ uses
-               aiplus-auto-team-consultant          ← decision-support layer
+               AiPlus-Auto-Team-Consultant          ← decision-support layer
                            ↓ uses
-    aiplus-agent-memory   aiplus-compact-reminder   aiplus-agent-velocity
+    AiPlus-Agent-Memory  AiPlus-Compact-Reminder  AiPlus-Agent-Velocity
                ←——————— shared infrastructure layer ———————→
 ```
 
 Agent Team is the orchestration layer. It sits on top of the four existing
 AiPlus plugins and uses them as shared infrastructure:
 
-- **aiplus-agent-memory** — each agent gets a namespaced memory under
+- **AiPlus-Agent-Memory** — each agent gets a namespaced memory under
   `.aiplus/agent-memory/<role>/`
-- **aiplus-compact-reminder** — each long-running agent runs its own compact
+- **AiPlus-Compact-Reminder** — each long-running agent runs its own compact
   cycle; CEO tracks compact state per agent
-- **aiplus-agent-velocity** — each agent has its own velocity records
-- **aiplus-auto-team-consultant** — CEO fires consultant before MEDIUM and
+- **AiPlus-Agent-Velocity** — each agent has its own velocity records
+- **AiPlus-Auto-Team-Consultant** — CEO fires consultant before MEDIUM and
   HEAVY tasks; consultant findings flow into the staffed team's brief
 
 ### Five core design decisions
@@ -163,7 +163,7 @@ We welcome contributions that stay within the plugin's scope (role separation
 and execution, not advisory consulting or estimate calibration).
 
 1. **Open an issue first** for anything larger than a typo fix — the
-   `aiplus-agent-team` scope is tightly bounded and we want to avoid
+   `AiPlus-Agent-Team` scope is tightly bounded and we want to avoid
    well-intentioned PRs that collide with other AiPlus plugins.
 2. **Follow the existing TOML + markdown persona pattern** — per-agent config
    lives in `.aiplus/agents/<role>.toml`, persona prompt in
@@ -190,8 +190,8 @@ AiPlus Agent Team does not:
 
 ## More
 
-- Main platform: [aiplus](https://github.com/izhiwen/aiplus)
-- Canonical source: https://github.com/izhiwen/aiplus-agent-team
+- Main platform: [AiPlus](https://github.com/izhiwen/AiPlus)
+- Canonical source: https://github.com/izhiwen/AiPlus-Agent-Team
 
 ## License
 
