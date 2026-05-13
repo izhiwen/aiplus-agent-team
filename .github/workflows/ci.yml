@@ -21,9 +21,10 @@ jobs:
         run: |
           set -euo pipefail
           pip install --quiet yamllint
-          find . -name "*.yaml" -o -name "*.yml" -not -path "./.git/*" | while read -r f; do
+          find . \( -name "*.yaml" -o -name "*.yml" \) -not -path "./.git/*" -not -path "./.aiplus/*" | while read -r f; do
             yamllint -d "{extends: default, rules: {line-length: disable, document-start: disable}}" "$f"
           done
+          # .aiplus/ contains auto-generated internal data files, excluded from linting
       - name: Validate TOML files
         run: |
           set -euo pipefail
