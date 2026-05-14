@@ -192,6 +192,33 @@ AiPlus Agent Team does not:
 
 - Main platform: [AiPlus](https://github.com/izhiwen/AiPlus)
 - Canonical source: https://github.com/izhiwen/AiPlus-Agent-Team
+- Sibling module (applied-economics research):
+  [AiEconLab (AEL)](https://github.com/izhiwen/AiEconLab) — 8 research
+  roles (Advisor / PI / Theorist / PM / RA-Stata / RA-Python / Referee /
+  Replicator) plus 12 experts including an LLM-as-Measurement
+  Specialist. Built on the same agent-team architecture; replaces the
+  default SWE consultant team with a research-tuned 5-seat consultant
+  on install. Coexists in the same project via opt-in.
+
+## Note on the consultant team
+
+`aiplus install` ships `.aiplus/consultant-team.toml` with the
+SWE-tuned 5-seat default from
+[AiPlus-Auto-Team-Consultant](https://github.com/izhiwen/AiPlus-Auto-Team-Consultant)
+(Architecture / UX / Security / Pitfall / AI Integration). If you also
+`aiplus add aieconlab` for research workflows, AEL overwrites this
+config with its own research-tuned 5 seats (Design Credibility /
+Contribution Framing / Day-1 Reproducibility / IRB Gate / LLM-as-
+Measurement). v0.2 will let both configs coexist per role tier; v0.1
+takes the simpler stance that the most-recently-added team wins.
+
+## Honest disclosure
+
+- Single maintainer (Steve Zhiwen Wang, izhiwen on GitHub).
+- v0.1.x. Structural acceptance schema passes; install flow works on
+  5 platforms. Some Phase D wiring (real consultant-fire on dispatch,
+  owner-gate enforcement at dispatch time) is documented in design but
+  not yet wired into the CLI — open issues for the gaps.
 
 ## License
 
